@@ -1,0 +1,494 @@
+/* ShippingContainer — CSS 3D skin.
+   All colour arrives as custom properties set by shading.ts; nothing here
+   hard-codes a paint colour, so recolouring never touches the stylesheet. */
+
+.sc-root {
+  position: relative;
+  /* The box is fitted to this width; the contact shadow and any perspective
+     spill are clipped rather than allowed to widen the page. */
+  overflow-x: clip;
+}
+
+.sc-scene {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  /* Kept generous so a 180deg orbit never pushes the box out of frame. */
+  perspective: var(--sc-perspective, 2200px);
+  /* Eye slightly above the box centre. The rest of the downward look comes
+     from the rig pitch, so the two do not compound into a fisheye. */
+  perspective-origin: 50% 42%;
+  /* The box is wider than tall; the stage clips nothing but the page must not
+     gain a scrollbar from the corners sweeping past the edge. */
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.sc-stage,
+.sc-scale,
+.sc-rig,
+.sc-box,
+.sc-grp,
+.sc-p,
+.sc-leaf {
+  transform-style: preserve-3d;
+}
+
+/* A hint of ground. Without it the contact shadow is dark-on-dark and the box
+   floats; this is the surface the shadow is cast onto. */
+.sc-scene::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 64%;
+  background: radial-gradient(118% 100% at 50% 100%, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0) 68%);
+  pointer-events: none;
+}
+
+.sc-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+/* The skin is built once at a reference scale and fitted with one transform.
+   It must be the containing block for the rig, hence inset:0 rather than a
+   bare transform on an auto-sized box. */
+.sc-scale {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+}
+
+.sc-rig,
+.sc-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+
+/* Pointer highlight travelling across the corrugation. --sc-sweep is written
+   by the tilt handler; with no pointer the overlay is simply invisible. */
+.sc-f--sideR-crest,
+.sc-f--sideL-crest,
+.sc-f--door-crest,
+.sc-f--roof-crest {
+  background-image: linear-gradient(
+    100deg,
+    rgb(255 255 255 / 0) calc(var(--sc-sweep, -60%) + 22%),
+    rgb(255 255 255 / 0.13) calc(var(--sc-sweep, -60%) + 50%),
+    rgb(255 255 255 / 0) calc(var(--sc-sweep, -60%) + 78%)
+  );
+}
+
+.sc-grp {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+
+.sc-p {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  backface-visibility: hidden;
+  background: var(--sc-face, #888);
+}
+
+/* ---- Face colour bindings -------------------------------------------- */
+.sc-f--sideR-base { --sc-face: var(--sc-sideR-base); }
+.sc-f--sideR-crest { --sc-face: var(--sc-sideR-crest); }
+.sc-f--sideR-webA { --sc-face: var(--sc-sideR-webA); }
+.sc-f--sideR-webB { --sc-face: var(--sc-sideR-webB); }
+.sc-f--sideL-base { --sc-face: var(--sc-sideL-base); }
+.sc-f--sideL-crest { --sc-face: var(--sc-sideL-crest); }
+.sc-f--sideL-webA { --sc-face: var(--sc-sideL-webA); }
+.sc-f--sideL-webB { --sc-face: var(--sc-sideL-webB); }
+.sc-f--endF-base { --sc-face: var(--sc-endF-base); }
+.sc-f--endF-crest { --sc-face: var(--sc-endF-crest); }
+.sc-f--endF-webA { --sc-face: var(--sc-endF-webA); }
+.sc-f--endF-webB { --sc-face: var(--sc-endF-webB); }
+.sc-f--roof-base { --sc-face: var(--sc-roof-base); }
+.sc-f--roof-crest { --sc-face: var(--sc-roof-crest); }
+.sc-f--roof-web { --sc-face: var(--sc-roof-web); }
+.sc-f--door-base { --sc-face: var(--sc-door-base); }
+.sc-f--door-crest { --sc-face: var(--sc-door-crest); }
+.sc-f--door-webA { --sc-face: var(--sc-door-webA); }
+.sc-f--door-webB { --sc-face: var(--sc-door-webB); }
+.sc-f--floor { --sc-face: var(--sc-floor); }
+.sc-f--rail { --sc-face: var(--sc-rail); }
+.sc-f--post { --sc-face: var(--sc-post); }
+.sc-f--casting { --sc-face: var(--sc-casting); }
+.sc-f--int-wall { --sc-face: var(--sc-int-wall); }
+.sc-f--int-floor { --sc-face: var(--sc-int-floor); }
+.sc-f--int-ceil { --sc-face: var(--sc-int-ceil); }
+
+/* ---- Corner castings -------------------------------------------------- */
+.sc-cast-face {
+  display: grid;
+  place-items: center;
+  border-radius: 2px;
+}
+
+.sc-ap {
+  /* The ISO 1161 oval aperture. */
+  width: 46%;
+  height: 34%;
+  border-radius: 999px;
+  background: #0d0f12;
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 0.16);
+}
+
+.sc-ap--top { width: 34%; height: 46%; }
+
+/* ---- Doors ------------------------------------------------------------ */
+.sc-doorframe { z-index: 2; }
+
+.sc-gasket {
+  /* A perimeter seal, not a panel. As a filled plane it sat across the whole
+     rear opening and blacked out the interior the moment the doors swung. */
+  background: transparent;
+  border: var(--sc-gasket-w, 6px) solid #14161a;
+  box-sizing: border-box;
+  border-radius: 2px;
+}
+
+.sc-leaf {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  will-change: transform;
+}
+
+.sc-hinge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 26px;
+  margin: -13px 0 0 -5.5px;
+  border-radius: 3px;
+  background: var(--sc-hardware);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35);
+}
+
+.sc-bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  background: var(--sc-hardware);
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.18), inset 1px 0 0 rgb(0 0 0 / 0.3);
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.sc-keeper {
+  position: absolute;
+  left: 50%;
+  width: 260%;
+  height: 12px;
+  margin-left: -130%;
+  border-radius: 2px;
+  background: var(--sc-hardware);
+  filter: brightness(0.84);
+}
+
+.sc-keeper--t { top: 7%; }
+.sc-keeper--b { bottom: 7%; }
+
+.sc-handle {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 240%;
+  height: 20px;
+  margin-left: -40%;
+  border-radius: 3px;
+  background: var(--sc-hardware);
+  filter: brightness(1.12);
+}
+
+/* ---- Markings and decals ---------------------------------------------- */
+.sc-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: var(--sc-mark-font, ui-monospace, "SFMono-Regular", Menlo, monospace);
+  color: var(--sc-decals);
+  opacity: 0.94;
+}
+
+.sc-mark-id {
+  position: absolute;
+  top: 9%;
+  left: 8%;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.sc-mark-type {
+  position: absolute;
+  top: 9%;
+  right: 8%;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.sc-mark-plate {
+  position: absolute;
+  bottom: 11%;
+  left: 8%;
+  padding: 4px 6px;
+  font-size: 6px;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.75;
+}
+
+.sc-decal {
+  display: grid;
+  place-items: center;
+  background: none;
+  color: var(--sc-decals);
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+
+.sc-decal-in {
+  text-align: center;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.22);
+  line-height: 1.15;
+  /* Decals are painted stencils: they take the decal colour and are never
+     touched by the paint tween. */
+  color: var(--sc-decals);
+}
+
+.sc-decal-in :where(h1, h2, h3) {
+  margin: 0;
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sc-decal-in p {
+  margin: 0.4em 0 0;
+  font-size: 15px;
+  opacity: 0.82;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Interior ---------------------------------------------------------- */
+/* A sealed container shows nothing of its inside. Keeping the liner out of the
+   render until the doors open is both physically right and the thing that
+   stops the far liner wall winning a depth sort against the near skin — CSS 3D
+   sorts whole elements, so a large plane 240px behind a small one can still
+   paint over it. visibility (not opacity) because opacity below 1 would
+   flatten the group's preserve-3d. */
+.sc-interior {
+  z-index: 0;
+  visibility: hidden;
+}
+
+.sc-int-light {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260px;
+  height: 200px;
+  margin: -100px 0 0 -130px;
+  opacity: 0;
+  /* A pre-baked radial gradient, not a 120px/90px box-shadow. The shadow cost
+     ~100 ms to rasterise the first time the liner became visible; a gradient
+     of the same size is a single cheap fill. */
+  background: radial-gradient(ellipse at center, rgb(255 244 224 / 0.5) 0%, rgb(255 244 224 / 0.18) 45%, rgb(255 244 224 / 0) 72%);
+  pointer-events: none;
+}
+
+.sc-cargo {
+  display: grid;
+  place-items: center;
+  padding: 4%;
+  /* Lettering on the load, not a panel: .sc-p's fallback fill must not show. */
+  background: none;
+  color: #1a2338;
+  opacity: 0;
+  backface-visibility: hidden;
+}
+
+.sc-cargo-in :where(h1, h2, h3) {
+  margin: 0 0 0.35em;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.sc-cargo-in p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  opacity: 0.8;
+}
+
+/* ---- Weathering -------------------------------------------------------- */
+.sc-weathered :where(.sc-f--sideR-base, .sc-f--sideL-base, .sc-f--endF-base, .sc-f--door-base) {
+  background-image:
+    linear-gradient(180deg, rgb(0 0 0 / 0.18) 0%, rgb(0 0 0 / 0) 18%),
+    linear-gradient(180deg, rgb(0 0 0 / 0) 74%, rgb(60 30 14 / 0.12) 100%),
+    repeating-linear-gradient(97deg, rgb(92 48 22 / 0.09) 0 2px, rgb(0 0 0 / 0) 2px 23px);
+}
+
+.sc-weathered :where(.sc-f--roof-base, .sc-f--roof-crest) {
+  background-image:
+    repeating-linear-gradient(9deg, rgb(70 40 20 / 0.12) 0 3px, rgb(0 0 0 / 0) 3px 31px),
+    linear-gradient(90deg, rgb(0 0 0 / 0.14), rgb(0 0 0 / 0) 40%);
+}
+
+.sc-weathered :where(.sc-f--sideR-crest, .sc-f--sideL-crest, .sc-f--door-crest) {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(0 0 0 / 0.1));
+}
+
+/* ---- Ground shadow ------------------------------------------------------ */
+.sc-shadow {
+  position: absolute;
+  left: 50%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(4 5 8 / 0.78) 0%, rgb(4 5 8 / 0.4) 42%, rgb(4 5 8 / 0) 70%);
+  filter: blur(var(--sc-shadow-blur, 10px));
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* ---- Poster (instant paint, 3D builds lazily) --------------------------- */
+.sc-poster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.sc-poster-box {
+  width: 62%;
+  aspect-ratio: 2.34 / 1;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.1) 0 3px, rgb(0 0 0 / 0) 3px 17px),
+    linear-gradient(168deg, var(--sc-poster-hi, #9fb0c8), var(--sc-poster-lo, #5a6b83));
+  transform: rotate(-1.2deg) skewY(-2.4deg);
+  opacity: 0.5;
+}
+
+/* ---- Focus and controls -------------------------------------------------- */
+.sc-scene:focus-visible,
+.sc-hit:focus-visible {
+  outline: 2px solid var(--sc-focus, #2457ff);
+  outline-offset: 3px;
+}
+
+.sc-hit {
+  position: absolute;
+  inset: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.sc-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion: the scene still builds and still recolours, it simply does
+   not orbit, drift or autoplay. Handled in JS via gsap.matchMedia; this only
+   removes the CSS-side transition hints. */
+@media (prefers-reduced-motion: reduce) {
+  .sc-leaf,
+  .sc-bar,
+  .sc-shadow {
+    will-change: auto;
+  }
+}
+
+/* ---- Carousel ------------------------------------------------------------ */
+.scx {
+  position: relative;
+  width: 100%;
+  /* The ring's outer cards extend past the track on purpose; clip them here.
+     This must not go on .scx-track: overflow on a preserve-3d element flattens
+     it and the ring collapses to a flat row. */
+  overflow-x: clip;
+}
+
+.scx-track {
+  position: relative;
+  width: 100%;
+  height: var(--scx-height, 46vh);
+  min-height: 260px;
+  perspective: 1800px;
+  transform-style: preserve-3d;
+  /* Horizontal drag is ours; vertical scrolling stays the page's. */
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.scx-track:active { cursor: grabbing; }
+
+.scx-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--scx-card, 40%);
+  margin-left: calc(var(--scx-card, 40%) / -2);
+  /* Deliberately flat. The card carries a 3D transform to sit in the ring, but
+     its contents must not share that 3D space: each container already owns a
+     perspective of its own, and leaving preserve-3d here would keep all ~230
+     of its planes separately composited, so every frame of a move re-composites
+     them one by one instead of transforming a single cached texture. */
+  transform-style: flat;
+  will-change: transform, opacity;
+}
+
+.scx-mount {
+  width: 100%;
+  /* Each container keeps its own perspective; the card places it in the ring. */
+  transform: translateY(-50%);
+}
+
+/* ---- Scroll story -------------------------------------------------------- */
+.scs {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: clip;
+}
+
+.scs-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8%;
+  width: min(92%, 640px);
+  margin-inline: auto;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+}
