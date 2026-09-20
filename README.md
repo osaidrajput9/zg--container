@@ -66,3 +66,26 @@ src/
   components/   client components (hero, scroll-reveal)
   lib/gsap.ts   single plugin registration point
 ```
+
+## GSAP MCP server
+
+`.mcp.json` registers [`@vinhnguyen/gsap-mcp`](https://github.com/glorynguyen/gsap-mcp)
+as a project-scoped MCP server, so any agent working in this repo can query the
+GSAP API instead of recalling it. It exposes six tools:
+
+| Tool | Purpose |
+| --- | --- |
+| `understand_and_create_animation` | Turn a plain-English brief into GSAP code |
+| `get_gsap_api_expert` | Look up a method, plugin or property in depth |
+| `generate_complete_setup` | Emit plugin registration and framework boilerplate |
+| `debug_animation_issue` | Diagnose a misbehaving animation |
+| `optimize_for_performance` | Rework an animation toward 60fps |
+| `create_production_pattern` | Produce a vetted pattern (hero, reveal, parallax…) |
+
+It is a community package, not an official GreenSock release. It runs over stdio
+and serves static reference data only — no network, filesystem or shell access.
+The version is pinned so a new release cannot change what runs without a
+deliberate bump here.
+
+MCP servers are loaded when a session starts, so restart Claude Code after
+pulling this file. On first connect you will be asked to approve the server.
