@@ -217,15 +217,38 @@ Everything below was measured on this build, not asserted.
 | Decal colour across 4 paint changes | unchanged (`hsl(39 58.8% 93.3%)`) |
 | Reduced motion | autoplay held, no orbit |
 | Horizontal overflow, all routes, 375/834/1440 | none |
-| Hero frame timing, full 360° orbit sweep | 60 fps, **0 frames over 20 ms** |
+| Hero frame timing, full 360° orbit sweep | see *Frame rate* below — **not verified on real hardware** |
 
-### Known limits
+### Frame rate
 
-- **Frame rate was measured under SwiftShader** — this environment has no GPU,
-  so every CSS 3D plane rasterises on the CPU. The hero holding 60 fps there is
-  a strong signal, but the carousel (5 containers, ~1150 planes) ran at ~30 fps
-  under software rendering and has *not* been validated against the brief's
-  "60 fps on a mid-range laptop and phone". That needs a run on real hardware.
+**Unverified against the brief's target.** Treat every number below as a floor
+measured on a software renderer, not as evidence the component hits 60 fps.
+
+The only environment available here runs Chromium on SwiftShader — Chromium's
+CPU rasteriser — so every CSS 3D plane is composited without a GPU. Measured
+there, a continuous 360° orbit of the hero runs at a median of 30 fps with a
+worst frame of 83 ms and 71% of frames over the 16.7 ms budget.
+
+An earlier draft of this README claimed 60 fps with no frame over 20 ms. That
+figure was wrong: the sampling window kept running for about three seconds
+after the sweep had finished, so idle frames dominated the percentiles. The
+in-page benchmark replaces it and samples only while the orbit is actually
+moving.
+
+To get a real number, open `/lab` on the device you care about and press **Run
+benchmark**. It sweeps a full 360° for four seconds, reports the distribution
+rather than an average, prints the WebGL renderer string, and flags a software
+rasteriser with a warning so a meaningless result cannot be mistaken for a good
+one. "Copy JSON" gives a pasteable record.
+
+This is a device claim — "a mid-range laptop and a mid-range phone from the last
+three years" — so it can only be settled by running it on those devices. A
+remote GPU would answer a different question.
+
+### Other known limits
+- The carousel is the heavy case: five containers, ~1150 planes. If the
+  benchmark comes back short on a target device, the first lever is
+  `LAYOUTS[*].quality` in `effects/carousel.ts`.
 - Rails, posts and castings wrap all four sides, so a single custom property
   cannot describe them directionally; they take a fixed relative tint off the
   body colour rather than per-orbit lighting. They are narrow enough that it

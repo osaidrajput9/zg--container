@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { ContainerView } from "@/components/container-view";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { Benchmark } from "@/components/benchmark";
 import { PRESETS, type ColorZone, type ContainerSize, type ShippingContainer } from "@/lib/container";
 
 /**
@@ -135,6 +136,8 @@ export default function LabPage() {
               <button type="button" className="btn !px-3 !py-1 !text-[0.7rem]" aria-pressed={open}
                 onClick={() => box.current?.toggleDoors()}>Doors</button>
             </div>
+
+            <Benchmark target={() => box.current} />
 
             <div className="border-t border-line pt-4">
               <p className="eyebrow">Teardown test</p>
